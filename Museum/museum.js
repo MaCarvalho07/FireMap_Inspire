@@ -105,7 +105,7 @@ function playAudio(audioSrc, legendText) {
 let progression  = parseInt(localStorage.getItem("progression")) || 0;
 let billy_audios_legends = null;
 
-let clock, scene, camera, renderer, composer, controls, paintings, walls, furniture;
+let clock, scene, camera, renderer, composer, controls, paintings, walls, furniture, logos;
 let outlinePass; 
 let currentAudio;
 
@@ -121,6 +121,7 @@ let bgCamera, bgScene;
 
 // Tour / Movement Variables
 let paintings_info = null;
+let sponsors_info = null
 let tour_path = null;
 let tour_stops = TOUR_STOPS_DEFAULT.slice();
 let auto_tour_start  = null;
@@ -264,6 +265,7 @@ function loadMuseumModel() {
 
   loader.load("../assets/museum/Museum_Emissive_Logos.glb", (gltf) => {
     console.log(gltf.scene);
+    logos = gltf.scene;
     gltf.scene.traverse((o) => {
       if (o.isMesh) {
         o.material.emissive = new THREE.Color( 0xffffff );
@@ -337,6 +339,7 @@ async function initBilly() {
 
 async function initTour() {
   paintings_info = await loadPaintingsInfo("../assets/museum/paintings.json");
+  sponsors_info = await loadPaintingsInfo("../assets/museum/sponsors.json")
   const tour_path_points = await loadPointsFromJson("../assets/museum/tour.json"); 
   tour_path = new THREE.CatmullRomCurve3(tour_path_points);
 }
@@ -422,14 +425,18 @@ function checkMouseOverPainting(mouse) {
   raycaster.setFromCamera(mouse, camera);
 
   // Check if mouse hovers over a painting
-  const models = [paintings, walls, furniture];
+  const models = [paintings, walls, furniture, logos];
   try {
     const intersections = raycaster.intersectObjects(models);
     if (intersections.length > 0) {
       const object = intersections[0].object;
       const paintingInfo = paintings_info.find(info => info.name === object.name);
+      const sponsorInfo = sponsors_info.find(info => info.name === object.name);
       if (paintingInfo) {
-        return [true, intersections[0], paintingInfo];
+        return [true, , true, intersections[0], paintingInfo];
+      }
+      if (sponsorInfo) {
+        return [true, false, intersections[0], sponsorInfo];
       }
     }
   } catch {}
@@ -443,7 +450,7 @@ function onMouseMove(event) {
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
   outlinePass.selectedObjects = [];
-  const [isOverPainting, intersection, paintingInfo] = checkMouseOverPainting(mouse);
+  const [isOverPainting, isPainting, intersection, paintingInfo] = checkMouseOverPainting(mouse);
   if (isOverPainting) {
     const dist = camera.position.distanceTo(intersection.point);
     if (moveToPrev || moveToNext) return;
@@ -457,16 +464,15 @@ function onMouseClick(event) {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-  const [isOverPainting, intersection, paintingInfo] = checkMouseOverPainting(mouse);
-
-  if (isOverPainting) {  
+  const [isOverPainting, isPainting, intersection, paintingInfo] = checkMouseOverPainting(mouse);
+  if (isOverPainting && isPainting) {
     const dist = camera.position.distanceTo(intersection.point);
     if (dist >= PAINTING_HOVER_DISTANCE) return; 
     if (moveToPrev || moveToNext) return;
 
     // Compute face area to hack out of weird cases... don't ask
     const face = intersection.face;
-    const geometry = intersection.object.geometry;
+    const geometry = intction.object.geometry;
     const pos = geometry.attributes.position;
     const a = new THREE.Vector3().fromBufferAttribute(pos, face.a);
     const b = new THREE.Vector3().fromBufferAttribute(pos, face.b);
@@ -475,7 +481,8 @@ function onMouseClick(event) {
     const ac = new THREE.Vector3().subVectors(c, a);
     const cross = new THREE.Vector3().crossVectors(ab, ac);
     const area = cross.length() * 0.5;
-    if(area < 100) return;
+    console.log(area)
+    if(area < 10) return;
 
     // Compute centroid of painting mesh and normal of clicked face
     const mesh = intersection.object;
@@ -490,7 +497,7 @@ function onMouseClick(event) {
     // Compute objective position and lookat
     const targetPosition = centroid.clone().add(painting_normal.multiplyScalar(paintingInfo.distance));
     const targetFocus = centroid;
-
+    console.log("Here!")
     // If already looking at paiting then dive into it
     if (looking_at_painting){
       gsap.to(camera.position, {
@@ -552,6 +559,8 @@ function onMouseClick(event) {
       }
     });
 
+  } else if (isOverPainting) {
+    window.open(paintingInfo.path, "_blank")
   }
 }
 
