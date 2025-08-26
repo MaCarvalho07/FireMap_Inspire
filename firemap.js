@@ -58,7 +58,7 @@ async function fetchFireData() {
                     lon: parseFloat(fire.longitude),
                     brightness: parseFloat(fire.brightness) || 0,
                     info: `<b>Data:</b> ${fire.acq_date}<br>
-                           `
+                           <b>Hora:</b> ${fire.acq_time}<br>`
                 });
             }
         });
