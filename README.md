@@ -74,7 +74,7 @@ Projeto de visualização de focos de incêndio e vento usando Leaflet.
 1. Clone o repositório:
 
 ```bash
-git clone https://github.com/usuario/firemap.git
+git clone https://github.com/usuario/FireMap-Inspire.git
 ```
 
 2. Abra `index.html` em um navegador. Se houver problemas de CORS ao buscar dados da NASA, use uma extensão de CORS (ex: "Allow CORS" no Chrome).
